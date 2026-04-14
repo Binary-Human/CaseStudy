@@ -13,3 +13,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+
+## Dashboard
+
+# Running
+```bash
+streamlit run src/dashboard.py 
+```
