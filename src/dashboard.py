@@ -4,61 +4,115 @@
 
 import streamlit as st
 import pandas as pd
+
 from data import extract_context_data, extract_use_case_data
 
-st.set_page_config(page_title="ShipEasy Dashboard", layout="wide")
+from evaluation.service import EvaluationService 
+from evaluation.metrics import categorize
 
-st.title("📊 ShipEasy Data Explorer")
+
+st.set_page_config(page_title="ShipEasy Dashboard", layout="wide")
+st.title("📊 ShipEasy Evaluation Dashboard")
 
 # Default sheet names
 DEFAULT_CONTEXT_SHEET = "📚 Base de Connaissance"
 DEFAULT_USE_CASE_SHEET = "📋 Version Candidat"
 
-# File uploader
-uploaded_file = st.file_uploader(
-    "Upload Excel file",
-    type=["xlsx"]
-)
+uploaded_file = st.file_uploader("Upload Excel file", type=["xlsx"])
 if uploaded_file is None:
-    st.info("Please upload an Excel file to continue.")
+    st.info("Upload file to start.")
     st.stop()
 
-# Read available sheets
 xls = pd.ExcelFile(uploaded_file)
 sheet_names = xls.sheet_names
 
-# Select which sheet is to be used
 st.sidebar.header("⚙️ Parameters")
 
-context_sheet = st.sidebar.selectbox(
-    "Context Sheet",
-    options=sheet_names,
-    index=sheet_names.index(DEFAULT_CONTEXT_SHEET) if DEFAULT_CONTEXT_SHEET in sheet_names else 0 
-    # default sheet if exists, else first sheet
-)
+context_sheet = st.sidebar.selectbox("Context Sheet", options=sheet_names,
+    index=sheet_names.index(DEFAULT_CONTEXT_SHEET) if DEFAULT_CONTEXT_SHEET in sheet_names else 0)
+use_case_sheet = st.sidebar.selectbox("Use Case Sheet", options=sheet_names,
+    index=sheet_names.index(DEFAULT_USE_CASE_SHEET) if DEFAULT_USE_CASE_SHEET in sheet_names else 0)
 
-use_case_sheet = st.sidebar.selectbox(
-    "Use Case Sheet",
-    options=sheet_names,
-    index=sheet_names.index(DEFAULT_USE_CASE_SHEET) if DEFAULT_USE_CASE_SHEET in sheet_names else 0 
-    # default sheet if exists
-)
+# Thresholds
+st.sidebar.subheader("📏 Thresholds")
+
+thresholds = {
+    "faithfulness": st.sidebar.slider("Faithfulness", 0.0, 1.0, 0.7),
+    "relevancy": st.sidebar.slider("Relevancy", 0.0, 1.0, 0.7),
+    "completeness": st.sidebar.slider("Completeness", 0.0, 1.0, 0.7),
+    "ambiguity": st.sidebar.slider("Ambiguity", 0.0, 1.0, 0.3),
+    "tone": st.sidebar.slider("Tone", 0.0, 1.0, 0.7),
+}
 
 # Load data
-try:
-    context_data = extract_context_data(uploaded_file, context_sheet)
-    use_case_data = extract_use_case_data(uploaded_file, use_case_sheet)
+context_df = extract_context_data(uploaded_file, context_sheet)
+use_case_df = extract_use_case_data(uploaded_file, use_case_sheet)
 
-    # Display tables
-    col1, col2 = st.columns(2)
+# Display tables
+col1, col2 = st.columns(2)
 
-    with col1:
-        st.subheader("📚 Context Data")
-        st.dataframe(context_data, use_container_width=True)
+with col1:
+    st.subheader("📚 Context Data")
+    st.dataframe(context_df, use_container_width=True)
 
-    with col2:
-        st.subheader("📋 Use Case Data")
-        st.dataframe(use_case_data, use_container_width=True)
+with col2:
+    st.subheader("📋 Use Case Data")
+    st.dataframe(use_case_df, use_container_width=True)
 
-except Exception as e:
-    st.error(f"Error processing file: {e}")
+# Run evaluation
+if st.button("🚀 Run Evaluation"):
+
+    service = EvaluationService(context_df)
+    results = []
+    progress = st.progress(0)
+
+    for i, row in use_case_df.iterrows():
+
+        print(f"Evaluating case {i+1}/{len(use_case_df)}: {row['question']}")
+        metrics = service.evaluate_case(row)
+        label = categorize(metrics, thresholds)
+
+        results.append({
+            "id": row["id"],
+            "question": row["question"],
+            "answer": row["answer"],
+            "label": label,
+            "relevancy": metrics.get("relevancy", 0),
+        # TODO : add other metrics
+        })
+
+        progress.progress((i + 1) / len(use_case_df))
+
+    df_results = pd.DataFrame(results)
+
+    st.success("Evaluation complete")
+    st.subheader("📊 Summary")
+
+    col1, col2, col3 = st.columns(3)
+
+    # Detailed count
+    col1.metric("Total cases", len(df_results))
+    col2.metric("Hallucinations", (df_results["label"] == "🔴 Hallucination").sum())
+    # TODO : add other metrics
+    col3.metric("Good responses", (df_results["label"] == "✅ Bonne réponse").sum())
+
+    st.subheader("📈 Label distribution")
+    st.bar_chart(df_results["label"].value_counts())
+
+    st.subheader("❌ Failed cases")
+    failed = df_results[df_results["label"] != "✅ Bonne réponse"]
+    st.dataframe(failed, use_container_width=True)
+
+    st.subheader("🚨 Most critical issues")
+    critical = failed.sort_values(
+        by=["relevancy"],
+        ascending=True
+    ).head(10)
+
+    st.dataframe(critical, use_container_width=True)
+
+    st.download_button(
+        "Download results",
+        df_results.to_csv(index=False),
+        file_name="eval_results.csv"
+    )
