@@ -39,8 +39,9 @@ curl http://localhost:11434/api/generate -d '{
 ```bash
 export OPENAI_API_KEY=<your_api_key>
 ```
+or directly in .env. You might need a confident AI API key (`deepeval login`)
 
-Make sure you update the model type in `metric.py`
+Make sure you update the model type in `metric.py` if you change models
 
 ```python
 model = GPTModel(
@@ -51,7 +52,7 @@ model = GPTModel(
 
 ## Dashboard
 
-# Running
+### Running
 ```bash
 streamlit run src/dashboard.py 
 ```
