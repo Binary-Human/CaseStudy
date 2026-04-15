@@ -91,14 +91,18 @@ if st.button("🚀 Run Evaluation"):
 
         progress.progress((i + 1) / len(use_case_df))
 
-    df_results = pd.DataFrame(results)
+    # To avoid rerun 
+    st.session_state["df_results"] = pd.DataFrame(results)
+
+
+if "df_results" in st.session_state:
+    df_results = st.session_state["df_results"]
 
     st.success("Evaluation complete")
-    st.subheader("📊 Summary")
+    st.header("📊 Summary")
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
-    # Detailed count
     col1.metric("Total cases", len(df_results))
     col2.metric("Hallucinations", (df_results["label"] == "🔴 Hallucination").sum())
     col3.metric("Refusals", (df_results["label"] == "🔵 Refus inapproprié").sum())
@@ -108,23 +112,30 @@ if st.button("🚀 Run Evaluation"):
     st.subheader("📈 Label distribution")
     st.bar_chart(df_results["label"].value_counts())
 
+    st.subheader("🔍 Detailed metrics distribution")
+    selected_label = st.selectbox(
+        "Select label to filter",
+        options=df_results["label"].unique()
+    )
+
+    filtered = df_results[df_results["label"] == selected_label]
+
+    # Metrics change TODO :  no explicit reference
+    st.dataframe(
+        filtered[[
+            "question", "answer",
+            "relevancy", 
+            "faithfulness",
+            "hallucination",
+            "refusal", 
+            "tone"
+        ]],
+        use_container_width=True
+    )
+
     st.subheader("❌ Failed cases")
     failed = df_results[df_results["label"] != "✅ Bonne réponse"]
     st.dataframe(failed, use_container_width=True)
-
-    st.subheader("🚨 Most critical issues")
-    critical = failed.sort_values(
-        by=["relevancy"], # Ascending for relevancy, descending for others
-        ascending=True
-    ).head(10)
-
-    st.subheader("🚨 Most critical issues")
-    critical = failed.sort_values(
-        by=["hallucination", "refusal", "relevancy"], # Ascending for relevancy, descending for others
-        ascending=[False, False, True]
-    ).head(10)
-
-    st.dataframe(critical, use_container_width=True)
 
     st.download_button(
         "Download results",
