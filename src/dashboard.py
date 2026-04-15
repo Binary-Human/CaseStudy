@@ -112,6 +112,10 @@ if "df_results" in st.session_state:
     st.subheader("📈 Label distribution")
     st.bar_chart(df_results["label"].value_counts())
 
+    st.subheader("❌ Failed cases")
+    failed = df_results[df_results["label"] != "✅ Bonne réponse"]
+    st.dataframe(failed, use_container_width=True)
+
     st.subheader("🔍 Detailed metrics distribution")
     selected_label = st.selectbox(
         "Select label to filter",
@@ -133,12 +137,82 @@ if "df_results" in st.session_state:
         use_container_width=True
     )
 
-    st.subheader("❌ Failed cases")
-    failed = df_results[df_results["label"] != "✅ Bonne réponse"]
-    st.dataframe(failed, use_container_width=True)
-
     st.download_button(
         "Download results",
         df_results.to_csv(index=False),
         file_name="eval_results.csv"
     )
+
+##################################################
+st.header("🆚 Compare Runs")
+
+"""Upload your csv runs"""
+
+col_left, col_right = st.columns(2)
+
+with col_left:
+    file_run_1 = st.file_uploader("Upload Run 1 CSV", type=["csv"], key="run1")
+
+with col_right:
+    file_run_2 = st.file_uploader("Upload Run 2 CSV", type=["csv"], key="run2")
+
+if file_run_1 and file_run_2:
+
+    df1 = pd.read_csv(file_run_1)
+    df2 = pd.read_csv(file_run_2)
+
+    # Align on ID
+    merged = df1.merge(df2, on="id", suffixes=("_run1", "_run2"))
+
+    st.success("Comparison ready")
+
+    ##################################################
+    st.subheader("📊 Global Statistics")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    # How many good responses in each run
+    col1.metric("Run1 Good", (df1["label"] == "✅ Bonne réponse").sum())
+    col2.metric("Run2 Good", (df2["label"] == "✅ Bonne réponse").sum())
+
+    # How many got worse
+    improvement = (
+        (merged["label_run1"] != "✅ Bonne réponse") &
+        (merged["label_run2"] == "✅ Bonne réponse")
+    ).sum()
+
+    # How many got better
+    regression = (
+        (merged["label_run1"] == "✅ Bonne réponse") &
+        (merged["label_run2"] != "✅ Bonne réponse")
+    ).sum()
+
+    col3.metric("⬆️ Improvements", improvement)
+    col4.metric("⬇️ Regressions", regression)
+
+    ##################################################
+    st.subheader("📈 Label Distribution Comparison")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.write("Run 1")
+        st.bar_chart(df1["label"].value_counts())
+
+    with col2:
+        st.write("Run 2")
+        st.bar_chart(df2["label"].value_counts())
+
+    #################]#################################
+    st.subheader("🔍 Detailed Changes")
+
+    changed = merged[merged["label_run1"] != merged["label_run2"]]
+
+    st.dataframe(changed[[
+        "id",
+        "question_run1",
+        "answer_run1",
+        "answer_run2",
+        "label_run1",
+        "label_run2"
+    ]], use_container_width=True)
