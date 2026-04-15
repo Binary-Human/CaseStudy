@@ -78,7 +78,11 @@ if st.button("🚀 Run Evaluation"):
             "answer": row["answer"],
             "label": label,
             "relevancy": metrics.get("relevancy", 0),
-        # TODO : add other metrics
+            "faithfulness": metrics.get("faithfulness", 0),
+            "hallucination": metrics.get("hallucination", 0),
+            "completeness": metrics.get("completeness", 0),
+            "ambiguity": metrics.get("ambiguity", 0),
+            "refusal": metrics.get("refusal", 0),
         })
 
         progress.progress((i + 1) / len(use_case_df))
@@ -88,13 +92,14 @@ if st.button("🚀 Run Evaluation"):
     st.success("Evaluation complete")
     st.subheader("📊 Summary")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     # Detailed count
     col1.metric("Total cases", len(df_results))
     col2.metric("Hallucinations", (df_results["label"] == "🔴 Hallucination").sum())
-    # TODO : add other metrics
-    col3.metric("Good responses", (df_results["label"] == "✅ Bonne réponse").sum())
+    col3.metric("Refusals", (df_results["label"] == "🔵 Refus inapproprié").sum())
+    col4.metric("Tone issues", (df_results["label"] == "🟣 Bon fond, mauvais ton").sum())
+    col5.metric("Good responses", (df_results["label"] == "✅ Bonne réponse").sum())
 
     st.subheader("📈 Label distribution")
     st.bar_chart(df_results["label"].value_counts())
@@ -105,8 +110,14 @@ if st.button("🚀 Run Evaluation"):
 
     st.subheader("🚨 Most critical issues")
     critical = failed.sort_values(
-        by=["relevancy"],
+        by=["relevancy"], # Ascending for relevancy, descending for others
         ascending=True
+    ).head(10)
+
+    st.subheader("🚨 Most critical issues")
+    critical = failed.sort_values(
+        by=["hallucination", "refusal", "relevancy"], # Ascending for relevancy, descending for others
+        ascending=[False, False, True]
     ).head(10)
 
     st.dataframe(critical, use_container_width=True)

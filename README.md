@@ -12,7 +12,12 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 ```
-## Local LLM
+## LLM Setup
+
+DeepEval relies on an LLM-as-judge to estimate its metrics
+
+### Local Ollama
+
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
@@ -27,6 +32,21 @@ curl http://localhost:11434/api/generate -d '{
   "prompt": "Hello"
 }'
 
+```
+
+### Openai API
+
+```bash
+export OPENAI_API_KEY=<your_api_key>
+```
+
+Make sure you update the model type in `metric.py`
+
+```python
+model = GPTModel(
+    model="gpt-4.1-mini",
+    temperature=0
+)
 ```
 
 ## Dashboard

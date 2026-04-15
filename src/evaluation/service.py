@@ -4,6 +4,30 @@ from deepeval import assert_test
 import pandas as pd
 from evaluation.metrics import (faithfulness_metric,relevancy_metric,hallucination_metric,completeness_metric,ambiguity_metric,refusal_metric,categorize)
 
+import streamlit as st
+
+@st.cache_data(show_spinner=False)
+def _evaluate_case_cached(row_dict, context_df):
+    context = retrieve_context(row_dict["question"], context_df)
+
+    test_case = LLMTestCase(
+        input=row_dict["question"],
+        actual_output=row_dict["answer"],
+        retrieval_context=[c["detail"] for c in context],
+        context=[c["detail"] for c in context]
+    )
+
+    return {
+        "id": row_dict["id"],
+        "relevancy": relevancy_metric().measure(test_case),
+        "faithfulness": faithfulness_metric().measure(test_case),
+        "hallucination": hallucination_metric().measure(test_case),
+        "completeness": completeness_metric().measure(test_case),
+        "ambiguity": ambiguity_metric().measure(test_case),
+        "refusal": refusal_metric().measure(test_case),
+        "context": context,
+    }
+
 class EvaluationService:
 
     def __init__(self, context_df):
@@ -14,31 +38,12 @@ class EvaluationService:
         return metric.score, metric.reason
 
     def evaluate_case(self, row):
-
-        context = retrieve_context(row["question"], self.context_df)
-
-        print("Context retrieved:", context)
-
-        test_case = LLMTestCase(
-            input=row["question"],
-            actual_output=row["answer"],
-            retrieval_context=[c["detail"] for c in context]
+        print(f"Evaluating case {row['id']}")
+        
+        return _evaluate_case_cached(
+            row.to_dict(),
+            self.context_df,
         )
-
-        # TODO :  test with others
-        """ 
-            "faithfulness": faithfulness_metric().measure(test_case), # TODO : need to add reason parameters? 
-            "hallucination": hallucination_metric().measure(test_case),
-            "completeness": completeness_metric().measure(test_case),
-            "ambiguity": ambiguity_metric().measure(test_case),
-            "refusal": refusal_metric().measure(test_case),
-        """
-
-        return {
-            "id": row["id"],
-            "relevancy": relevancy_metric().measure(test_case),
-            "context": context
-        }
 
     def run_dataset(self, df):
         results = []

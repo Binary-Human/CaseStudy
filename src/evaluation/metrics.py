@@ -29,11 +29,16 @@ from deepeval.test_case import LLMTestCaseParams
 
 
 # TODO : MODEL TO BYPASS OPENAI LIMITS
-from deepeval.models import OllamaModel
+from deepeval.models import OllamaModel, GPTModel
 
 model = OllamaModel(
     model="phi3",
     base_url="http://localhost:11434",
+    temperature=0
+)
+
+model = GPTModel(
+    model="gpt-4.1-mini",
     temperature=0
 )
 
@@ -49,7 +54,7 @@ LABELS = {
 
 def categorize(metrics: dict, threshold_map) -> str:
     # TODO : threshold mapping
-    if metrics.get("hallucination", 0) > 0.6:
+    if metrics.get("hallucination", 0) > 0.7:
         return LABELS["hallucination"]
 
     if metrics.get("completeness", 0) < 0.5:
