@@ -26,6 +26,7 @@ if uploaded_file is None:
 xls = pd.ExcelFile(uploaded_file)
 sheet_names = xls.sheet_names
 
+##################################################
 st.sidebar.header("⚙️ Parameters")
 
 context_sheet = st.sidebar.selectbox("Context Sheet", options=sheet_names,
@@ -33,16 +34,17 @@ context_sheet = st.sidebar.selectbox("Context Sheet", options=sheet_names,
 use_case_sheet = st.sidebar.selectbox("Use Case Sheet", options=sheet_names,
     index=sheet_names.index(DEFAULT_USE_CASE_SHEET) if DEFAULT_USE_CASE_SHEET in sheet_names else 0)
 
-# Thresholds
+# Thresholds specification
 st.sidebar.subheader("📏 Thresholds")
 
+# TODO : update and integrate in metrics categorize
 thresholds = {
     "faithfulness": st.sidebar.slider("Faithfulness", 0.0, 1.0, 0.7),
     "relevancy": st.sidebar.slider("Relevancy", 0.0, 1.0, 0.7),
-    "completeness": st.sidebar.slider("Completeness", 0.0, 1.0, 0.7),
-    "ambiguity": st.sidebar.slider("Ambiguity", 0.0, 1.0, 0.3),
-    "tone": st.sidebar.slider("Tone", 0.0, 1.0, 0.7),
+    "tone": st.sidebar.slider("Tone", 0.0, 1.0, 0.8),
 }
+
+##################################################
 
 # Load data
 context_df = extract_context_data(uploaded_file, context_sheet)
@@ -59,6 +61,8 @@ with col2:
     st.subheader("📋 Use Case Data")
     st.dataframe(use_case_df, use_container_width=True)
 
+##################################################
+
 # Run evaluation
 if st.button("🚀 Run Evaluation"):
 
@@ -72,6 +76,7 @@ if st.button("🚀 Run Evaluation"):
         metrics = service.evaluate_case(row)
         label = categorize(metrics, thresholds)
 
+        # Metrics
         results.append({
             "id": row["id"],
             "question": row["question"],
@@ -80,9 +85,8 @@ if st.button("🚀 Run Evaluation"):
             "relevancy": metrics.get("relevancy", 0),
             "faithfulness": metrics.get("faithfulness", 0),
             "hallucination": metrics.get("hallucination", 0),
-            "completeness": metrics.get("completeness", 0),
-            "ambiguity": metrics.get("ambiguity", 0),
             "refusal": metrics.get("refusal", 0),
+            "tone": metrics.get("tone", 0),
         })
 
         progress.progress((i + 1) / len(use_case_df))
