@@ -1,34 +1,6 @@
 """
 Definition of evaluation metrics.
 """
-# Looping mecanisms for all the dataset
-
-### Metrics - only ouput based - no tracking
-    # Faithfulness
-    # Negative sentiment
-    # Ambiguity 
-    # Completeness - NO
-    # Inappropriate refusal
-
-# -> Thresholds for validating a test ? Mean score ?
-# Flag all deficient cases for review
-# Retrieve most critical errors
-
-# Save results ?
-
-
-
-# TOOO :
-
-# Report/summarize + Product based advice (LLM-as-judge?)
-
-# Infra for integrating dynamic LLM prompting and dataset updating ?
-
-# Process golden dataset and loop through
-# Creat Golden dataset
-    # Easy straightforward cases
-    # Edge cases
-    # Adversarial cases
 
 from deepeval.metrics import GEval, FaithfulnessMetric, AnswerRelevancyMetric, HallucinationMetric
 from deepeval.test_case import LLMTestCaseParams
@@ -66,10 +38,10 @@ def categorize(metrics: dict, threshold_map) -> str:
     if metrics.get("refusal", 0) > 0.8:
         return LABELS["bad_refusal"]
     
-    if metrics.get("tone", 1) > 0.6:
+    if metrics.get("tone", 1) > threshold_map.get("tone", 0.6):
         return LABELS["tone_issue"]
     
-    if metrics.get("faithfulness", 0) > 0.9 and metrics.get("relevancy", 0) > 0.9:
+    if metrics.get("faithfulness", 0) > threshold_map.get("faithfulness", 0.9) and metrics.get("relevancy", 0) > threshold_map.get("relevancy", 0.9):
         return LABELS["good"]
     
     return LABELS["ambiguous"] # Default to partial if no other category is met, to flag for review

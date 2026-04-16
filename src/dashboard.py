@@ -37,10 +37,9 @@ use_case_sheet = st.sidebar.selectbox("Use Case Sheet", options=sheet_names,
 # Thresholds specification
 st.sidebar.subheader("📏 Thresholds")
 
-# TODO : update and integrate in metrics categorize
 thresholds = {
-    "faithfulness": st.sidebar.slider("Faithfulness", 0.0, 1.0, 0.7),
-    "relevancy": st.sidebar.slider("Relevancy", 0.0, 1.0, 0.7),
+    "faithfulness": st.sidebar.slider("Faithfulness", 0.0, 1.0, 0.9),
+    "relevancy": st.sidebar.slider("Relevancy", 0.0, 1.0, 0.9),
     "tone": st.sidebar.slider("Tone", 0.0, 1.0, 0.8),
 }
 
@@ -124,7 +123,6 @@ if "df_results" in st.session_state:
 
     filtered = df_results[df_results["label"] == selected_label]
 
-    # Metrics change TODO :  no explicit reference
     st.dataframe(
         filtered[[
             "question", "answer",

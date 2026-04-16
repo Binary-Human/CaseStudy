@@ -36,7 +36,7 @@ class EvaluationService:
         self.context_df = context_df
 
     def evaluate_case(self, row):
-        print(f"Evaluating case {row['id']}") # TODO : For debugging purposes
+        print(f"Evaluating case {row['id']}")
 
         return _evaluate_case_cached(
             row.to_dict(),
