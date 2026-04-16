@@ -1,4 +1,9 @@
+# Précisions
 
+- **L'annotation** des paires questions réponse est gérée par l'app
+- Le **golden dataset** peut être trouvé directement sous le format csv
+
+# Installation
 
 ## Create virtual environnment and install dependencies
 
@@ -14,7 +19,12 @@ pip install -r requirements.txt
 ```
 ## LLM Setup
 
-DeepEval relies on an LLM-as-judge to estimate its metrics
+DeepEval relies on an LLM-as-judge to estimate its metrics. you will need an confident AI API key.
+
+```bash
+deepeval login
+
+```
 
 ### Local Ollama
 
@@ -39,7 +49,6 @@ curl http://localhost:11434/api/generate -d '{
 ```bash
 export OPENAI_API_KEY=<your_api_key>
 ```
-or directly in .env. You might need a confident AI API key (`deepeval login`)
 
 Make sure you update the model type in `metric.py` if you change models
 
